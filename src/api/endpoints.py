@@ -1,4 +1,4 @@
-from fastapi import HTTPException, Query, APIRouter
+from fastapi import HTTPException, Query, APIRouter, Path
 from pydantic import BaseModel
 from elasticsearch import Elasticsearch, NotFoundError
 
@@ -10,24 +10,21 @@ get_index = APIRouter()
 client = Elasticsearch(f'{ELASTICSEARCH_HOST}:{ELASTICSEARCH_PORT}')
 
 
-class GetRecordRequest(BaseModel):
-    index: str
-    id: str
 
 
-@get_record.post("/get_record")
-async def get_record_handler(request: GetRecordRequest):
+@get_record.get("/places/{id}")
+async def get_record_handler(id: str = Path(..., description="Record ID")):
     try:
         # Поиск записи по id и index
         query = {
             'query': {
                 'match': {
-                    'id': request.id
+                    'id': id
                 }
             }
         }
 
-        result = client.search(index=request.index, body=query)
+        result = client.search(index="places", body=query)
         result = [hit['_source'] for hit in result['hits']['hits']]
 
         if not result:
@@ -43,10 +40,10 @@ async def get_record_handler(request: GetRecordRequest):
 class GetIndexRequest(BaseModel):
     index: str
     size: int = Query(default=10, ge=1, le=100, description="Page size")
-    from_: int = Query(default=0, ge=0, alias="from", description="Starting offset")
+    offset: int = Query(default=0, ge=0, alias="offset", description="Starting offset")
 
 
-@get_index.post("/get_index")
+@get_index.post("/places")
 async def get_index_handler(request: GetIndexRequest):
     try:
         query = {
@@ -54,7 +51,7 @@ async def get_index_handler(request: GetIndexRequest):
                 'match_all': {}
             },
             'size': request.size,
-            'from': request.from_
+            'from': request.offset
         }
         result = client.search(index=request.index, body=query)
 
