@@ -10,8 +10,6 @@ get_index = APIRouter()
 client = Elasticsearch(f'{ELASTICSEARCH_HOST}:{ELASTICSEARCH_PORT}')
 
 
-
-
 @get_record.get("/places/{id}")
 async def get_record_handler(id: str = Path(..., description="Record ID")):
     try:
@@ -37,23 +35,17 @@ async def get_record_handler(id: str = Path(..., description="Record ID")):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-class GetIndexRequest(BaseModel):
-    index: str
-    size: int = Query(default=10, ge=1, le=100, description="Page size")
-    offset: int = Query(default=0, ge=0, alias="offset", description="Starting offset")
-
-
-@get_index.post("/places")
-async def get_index_handler(request: GetIndexRequest):
+@get_index.get("/places")
+async def get_index_handler(size: int = Query(..., ge=1, le=100), offset: int = Query(..., ge=0)):
     try:
         query = {
             'query': {
                 'match_all': {}
             },
-            'size': request.size,
-            'from': request.offset
+            'size': size,
+            'from': offset
         }
-        result = client.search(index=request.index, body=query)
+        result = client.search(index="places", body=query)
 
         hits = result['hits']['hits']
         records = [hit['_source'] for hit in hits]
