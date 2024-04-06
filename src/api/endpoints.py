@@ -22,7 +22,7 @@ async def get_record_handler(request: GetRecordRequest):
         query = {
             'query': {
                 'match': {
-                    '_id': request.id
+                    'id': request.id
                 }
             }
         }
